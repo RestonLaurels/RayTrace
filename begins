@@ -1,0 +1,198 @@
+#include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <fstream>
+#include <cstring>
+# define PI           3.14159265358979323846
+
+
+using namespace std;
+struct web_pix{//структура сетки пикселей
+    int z=480;
+    int x=640;
+};
+struct lightning{
+    int x=320;
+    int y=250;
+    int z=460;
+}
+;
+struct room{ //параметры комнаты
+    int leangh=500;//y
+    int width=640; //x
+    int height=480;//z
+};
+struct object{//параметры объекта
+    int x=135;  //
+    int y=246;  //местоположение в мировом пространстве
+    int z=75;  //
+    int R=75;  //радиус шара
+};
+struct viewer{//параметры наблюдателя
+    // напротив какого пикселя находится наблюдатель
+    int x=320;
+    int z=480;
+    int y=-500;//расстояние до изображения
+};
+
+ float descr (object sphere,int Xo,int Yo,int Zo,float a,float b,float c){
+    /*поиск пересечения луча заданного системой уравнений
+        x=Xo+at; y=Yo+bt; z=Zo+ct;
+        c объектом сферой если D<0 то пересечения отсутствуют
+     */
+    float D;
+    D=(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c)^2-4*(a^2+b^2+c^2)*((Xo-sphere.x)^2+(Yo-sphere.y)^2+(Zo-sphere.z)^2-sphere.R^2);
+    return D;
+}
+
+float minim(float t1, float t2){
+    if t1>t2
+        then return t2;
+        else return t1;
+}
+
+ float intersect (float D,object sphere){//находим t для всех систем уравнений
+    int t,t1,t2;
+    t1=-0,5*(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c)+0,5*((D)^0,5);
+    t2=-0,5*(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c)-0,5*((D)^0,5);
+    t=minimum (t1,t2);
+    return t;
+ }
+
+void Power_pix (int ox,int oy,int oz,room rm1,object sphere1,object sphere2,object sphere3,viewer camera,lightning light){
+    /*здесь имеем координаты начального пикселя, данные по всем 3ем сферам, данные по объекту, по свету, и размер комнаты
+
+        необходимо здесь запоминать таблицу пикселей, для её последующей распечатки то есть задать таблицу пикселей в главном,
+        отправить сюда указатель, здесь её забить, и в главном распечатать
+    */
+    int pulse=0;
+    float tmin;
+    //oy=0;
+    a=ox-viewer.x;//задаем вектор направления
+    b=oy-camera.y;
+    c=oz-camera.z;
+    //далее найдем, с какой из сфер нашлойсь пересечение и найдём минимальный t, чтобы определить точку пересечение
+    if (D1=descr((sphere1,ox,oy,oz,a,b,c))>=0) then {
+        tmin = intersect (D1,sphere1);
+        pulse++;
+    }
+    if (D2=descr((sphere2,ox,oy,oz,a,b,c))>=0) then {
+        t2 = intersect (D2,sphere2);
+        if (pulse == 0) then{
+            tmin = t2;
+            pulse++;
+        }
+        else if (t2<tmin) then tmin=t2;
+    }
+    if (D3=descr((sphere3,ox,oy,oz,a,b,c))>=0) then {
+        t3 = intersect (D3,sphere3);
+        if (pulse == 0) then{
+            tmin = t3;
+            pulse++;
+        }
+        else if (t3<tmin) then tmin=t3;
+    }
+    Xinters=ox+a*tmin; //
+    Yinters=oy+b*tmin; //  точка пересечения с объектом
+    Zinters=oz+c*tmin; //
+    //
+    //определим a,b,c для вектора отражения
+    /*получаем  систему урвнений
+    x=x перес. + t*(Xotr-Xinters);
+    y=y перес. + t*(Yotr-Yinters);
+    z=z перес. + t*(Zotr-Zinters);
+
+    Xotr=2*(Xinters+(Xinters-sphere.x))*((Xinters+(Xinters-sphere.x))*)
+    Yotr=2*()
+    Zotr=2*()
+
+
+    */
+
+    return;
+}
+
+
+
+int main()
+{
+    char str[20];
+	int kol;
+	// указатель на считываемый файл (для считывания)
+    int nspher=0;
+	int i, c, h = 1;                 // определители для дейтсвий
+    web_pix p;
+
+    object sphere1;
+    object sphere3;
+    object sphere2;
+    viewer camera;
+    lightning light;
+    room rm1;
+    cout << "If you want to render the picture\n";
+    while (h==1){
+        cout << "Enter name of file \n"; //printf("Enter name of file:\n");
+        cin >> str;                    //scanf("%s",s);
+        ifstream in(str);
+        if (!in){
+            cout << "Sorry, but i can't open file\n" << str; //printf("Sorry, but i can't open file  '%s'", s);
+			cout << "Retry your choice\n";
+        }
+        else
+        {
+            while (in) //пока файл не закончился считываем такие
+                       //данные из него как, размер массива пикселей,радиус шара, его координаты в мировом пространстве...
+            {
+            in >> p.x;
+            in >> p.z;
+            cout << "Webber\n";
+            cout << "weidht=" << p.x;
+            cout << " hight=" << p.z;
+
+            in >> sphere1.R;
+            in >> sphere1.x;
+            in >> sphere1.y;
+            in >> sphere1.z;
+            cout << "\n 1 sphere";
+            cout << "\n R"<<sphere1.R;
+            cout << "\n destination 1\n";
+            cout << "\n x= "<<sphere1.x;
+            cout << "\n y= "<<sphere1.y;
+            cout << "\n z= "<<sphere1.z<<"\n";
+
+            in >> sphere2.R;
+            in >> sphere2.x;
+            in >> sphere2.y;
+            in >> sphere2.z;
+            cout << "\n 2 sphere\n";
+            cout << "\n R"<<sphere2.R;
+            cout << "\n destination\n";
+            cout << "\n x= "<<sphere2.x;
+            cout << "\n y= "<<sphere2.y;
+            cout << "\n z= "<<sphere2.z<<"\n";
+
+            in >> sphere3.R;
+            in >> sphere3.x;
+            in >> sphere3.y;
+            in >> sphere3.z;
+            cout << "\n 3 sphere\n";
+            cout << "\n R"<<sphere3.R;
+            cout << "\n destination\n";
+            cout << "\n x= "<<sphere3.x;
+            cout << "\n y= "<<sphere3.y;
+            cout << "\n z= "<<sphere3.z<<"\n";
+            }
+            h=5;
+        }
+        in.close();
+    }
+    for (int z=p.z; z>0 ;z--){ //идём прямо по пикселям как по координатам p.z
+
+	    for (int x=p.x; x>0 ;x--){ //p.x
+            Power_pix(x,0,z,rm1,sphere1,sphere2,sphere3,camera,light);
+		}
+	}
+    return 0;
+}
