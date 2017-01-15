@@ -15,11 +15,11 @@
 #include <cstring>
 # define PI           3.14159265358979323846
 
-int width = 800;
-int height = 600;
-int roomleangh=700;//y
-int roomwidth=800; //x
-int roomheight=600;//z
+int width = 1400;
+int height = 900;
+int roomleangh=2000;//y
+int roomwidth=1400; //x
+int roomheight=900;//z
 int MAXrecurs=10;
 
 using namespace std;
@@ -32,9 +32,9 @@ struct color{
 
 struct lightning{
     int x=100;
-    int y=100;
-    int z=100;
-    float Il=1;//интенсивность света
+    int y=0;
+    int z=400;
+    float Il=0.6;//интенсивность света
 };
 
 struct object{//параметры объекта
@@ -50,9 +50,9 @@ struct object{//параметры объекта
 };
 struct viewer{//параметры наблюдателя
     // напротив какого пикселя находится наблюдатель
-    int x=400;
-    int z=300;
-    int y=-300;//расстояние до изображения
+    int x=700;
+    int z=450;
+    int y=-3000;//расстояние до изображения
 };
 float minim(float t1, float t2){
     if(t1>t2) t1 = t2;
@@ -65,42 +65,32 @@ float maxim(float t1, float t2){
 
  float descr (object sphere,float Xo,float Yo,float Zo,float a,float b,float c){
     float D; float X=Xo-sphere.x; float Y=Yo-sphere.y; float Z=Zo-sphere.z;
-    D=4*((X*a+Y*b+Z*c)*(X*a+Y*b+Z*c)-(a*a+b*b+c*c)*(X*X+Y*Y+Z*Z-(sphere.R)*(sphere.R)));
+
+     D=4*((X*a+Y*b+Z*c)*(X*a+Y*b+Z*c)-(a*a+b*b+c*c)*(X*X+Y*Y+Z*Z-(sphere.R)*(sphere.R)));
     return D;
 }
  float intersect (float D,object sphere,float Xo, float Yo, float Zo, float a,float b,float c){//находим t для всех систем уравнений
     float t,t1,t2;
-    t1=(pow(D, 0.5 )-(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c))/(2*(a*a+b*b+c*c));
-    t2=(-(pow(D, 0.5 ))-(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c))/(2*(a*a+b*b+c*c));
+    t1=(-(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c)+qPow(D,0.5))/(2*(a*a+b*b+c*c));
+    t2=(-(2*(Xo-sphere.x)*a+2*(Yo-sphere.y)*b+2*(Zo-sphere.z)*c)-qPow(D,0.5))/(2*(a*a+b*b+c*c));
     t=minim(t1,t2);
     return t;
  }
              // x,y,z- это точка, из которой проводится луч, a,b,c-это векторы направлений    количество сфер изначальная сфера
 
                                                                   //к-во сфер, номер сферы, из которой происходит отбор
- float peres(float ox,float oy, float oz,float a,float b, float c, object *sphere,int n, int f){
-  float tmin,t,D;
-  int pulse=0;
-  for (int i=0 ; i<n ; i++){
-      if ((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0){ //если имеется пересечение с любой сферой
+ float peres(float ox,float oy, float oz,float a,float b, float c, object *sphere,int n,int f){
+  float D,t;
+  for (int i=0 ; i<=n ; i++){
+      if (((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0)){//&&(t!=0)) { //проверяем на пересечение с всеми сферами
           t = intersect (D,sphere[i],ox,oy,oz,a,b,c);//расчитываем t для определения точки пересечения
-          if (t!=0){//если пересечение найдено не в этой же точке
-            if (pulse == 0){      //если до этого не был расчитан минимальный t,то минимальный t это расчитанный
-              tmin = t;
-              pulse =1;
-              //сфера с которой всё таки состоялось пересечение
-            }
-            else {
-              if (t<tmin){
-                  tmin = t;
-              }
-            }
+          if (t>(-0.1))
+          {//если пересечение найдено не в начальной точке
+            return 1;// между источником света и нач. точкой есть объект
           }
-
       }
   }
-  if (pulse==0) return 0;//пересечений не было
-  return 1;//пересечение было
+  return 0;
 }
 
 
@@ -116,20 +106,23 @@ float maxim(float t1, float t2){
      float Ir,Ig,Ib;
      float Xinters,Yinters,Zinters;
      float a_to_light,b_to_light,c_to_light,x_to_light,y_to_light,z_to_light;
+     float a_light,b_light,c_light;
+
      float Xotr,Yotr,Zotr;
+     float ind;
 
      for (i=0 ; i<n ; i++){
          if ((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0 && (i!=f)){ //если имеется пересечение с сферой и эта сфера не является сферой из которой и идет пересечение то
              t = intersect (D,sphere[i],ox,oy,oz,a,b,c);//расчитываем t для определения точки пересечения
              if (pulse == 0){      //если до этого не был расчитан минимальный t,то минимальный t это расчитанный
                  tmin = t;
-                 pulse =1;
+                 pulse = 1;
                  numberspher=i;//сфера с которой всё таки состоялось пересечение
              }
              else {
                  if (t<tmin){
                      tmin = t;
-                     numberspher=i;
+                     numberspher = i;
                  }
              }
 
@@ -138,65 +131,52 @@ float maxim(float t1, float t2){
      if (pulse==0) return 0;//если пересечения ни с 1ой сферой не было возвращаемся
 
 
-     Xinters=ox+a*tmin; //
-     Yinters=oy+b*tmin; //  точка пересечения с объектом
-     Zinters=oz+c*tmin; //
+     Xinters= ox + a * tmin; //
+     Yinters= oy + b * tmin; //  точка пересечения с объектом
+     Zinters= oz + c * tmin; //
 
 
-     normalx=(Xinters-sphere[numberspher].x);//
-     normaly=(Yinters-sphere[numberspher].y);//   векторы нормали с направлением
-     normalz=(Zinters-sphere[numberspher].z);//
-     //задаем новое направление
-     /*
-     Xotr=2*normalx*(normalx*(ox-Xinters)+normaly*(oy-Yinters)+normalz*(oz-Zinters))/(normalx*2+normaly*2+normalz*2)-(ox-Xinters);
-     Yotr=2*normaly*(normalx*(ox-Xinters)+normaly*(oy-Yinters)+normalz*(oz-Zinters))/(normalx*2+normaly*2+normalz*2)-(oy-Yinters);
-     Zotr=2*normalz*(normalx*(ox-Xinters)+normaly*(oy-Yinters)+normalz*(oz-Zinters))/(normalx*2+normaly*2+normalz*2)-(oz-Zinters);
-     a=Xotr-Xinters;
-     b=Yotr-Yinters;
-     c=Zotr-Zinters;
-     ox=Xinters;
-     oy=Yinters;
-     oz=Zinters;
-     */
-     f=numberspher;
-     a_to_light=light.x-Xinters;
-     b_to_light=light.y-Yinters;
-     c_to_light=light.z-Zinters;
+     normalx=(Xinters - sphere[numberspher].x);//
+     normaly=(Yinters - sphere[numberspher].y);//   векторы нормали с направлением
+     normalz=(Zinters - sphere[numberspher].z);//
+
+     f=numberspher; //запоминаем сферу с которой было пересечение
+
+     a_to_light=(light.x-Xinters);
+     b_to_light=(light.y-Yinters);
+     c_to_light=(light.z-Zinters);
+
+     a_light=(light.x - Xinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
+     b_light=(light.y - Yinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
+     c_light=(light.z - Zinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
+
      x_to_light=Xinters;
      y_to_light=Yinters;
      z_to_light=Zinters;
-     //теперь необходимо определить, если что-то перед нашим источником света(исключив при этом сферу, с которой начата проверка)
-     //если что-то есть, то Ili=0;- для данной точки на сфере
-     if (peres(x_to_light,y_to_light,z_to_light,a_to_light,b_to_light,c_to_light,sphere,n,f)){//если пересечение было (точка в тени)
+
+     //теперь необходимо определить, есть-ли что-то перед нашим источником света
+
+     ind=peres(x_to_light, y_to_light, z_to_light, a_light, b_light, c_light, sphere, n, f);
+
+     if (ind==1){//если пересечение было и не в той-же точке откуда выходил => точка в тени
          Cosa=0;
-         //light.Il=0;
      }
-     else{//косинус между найденной нормалью и прямой к источнику света
-         Cosa=(a_to_light*normalx+b_to_light*normaly+c_to_light*normalz)/((a_to_light*a_to_light+b_to_light*b_to_light+c_to_light*c_to_light)*(normalx*normalx+normaly*normaly+normalz*normalz));
+     else{
+         //косинус между найденной нормалью в точке и прямой к источнику света
+         Cosa=(a_light * normalx + b_light * normaly + c_light * normalz)/(qPow(((a_light * a_light + b_light * b_light + c_light * c_light) * (normalx * normalx + normaly * normaly + normalz * normalz)),0.5));
 
      }
+
      //общая интенсивность по отдельному цвету здесь будет равна
 
-     IaR=(sphere[numberspher].Red)/255;//таким образом находим фоновую интенсивность объекта
-     IaG=(sphere[numberspher].Green)/255;//по красному зеленому и голубому для объекта
-     IaB=(sphere[numberspher].Blue)/255;
+     IaR=(sphere[numberspher].Red) / 255;//таким образом находим фоновую интенсивность объекта
+     IaG=(sphere[numberspher].Green) / 255;//по красному зеленому и голубому для объекта
+     IaB=(sphere[numberspher].Blue) / 255;
 
-     //Ir=IaR*sphere[f].Kd+light.Il*sphere[f].Kd*Cosa;
-     //Ig=IaG*sphere[f].Kd+light.Il*sphere[f].Kd*Cosa;
-     //Ib=IaB*sphere[f].Kd+light.Il*sphere[f].Kd*Cosa;
-     //Ir=1;
-     //Ig=1;
-     //Ib=1;
-     Ir=IaR*sphere[f].Kd+light.Il*sphere[f].Kd*Cosa;
-     Ig=IaG*sphere[f].Kd+light.Il*sphere[f].Kd*Cosa;
-     Ib=IaB*sphere[f].Kd+light.Il*sphere[f].Kd*Cosa;
-     //
-     //
-     // Ib=light.Il*sphere[f].Kd;
 
-     //Ir=IaR*sphere[f].Kd+light.Il*sphere[f].Kd;
-     //Ig=IaG*sphere[f].Kd+light.Il*sphere[f].Kd;
-     //IaB*sphere[f].Kd+light.Il*sphere[f].Kd;
+     Ir=IaR * sphere[f].Kd + light.Il * sphere[f].Kd * Cosa;
+     Ig=IaG * sphere[f].Kd + light.Il * sphere[f].Kd * Cosa;
+     Ib=IaB * sphere[f].Kd + light.Il * sphere[f].Kd * Cosa;
 
      if (Ir>=1) Ir=1;
      if (Ig>=1) Ig=1;
@@ -214,6 +194,7 @@ void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightni
 
     float tmin;
     float a,b,c;
+    float af,bf,cf;
     int f=-1;
 
     QRgb rgbi=(0,0,0);
@@ -221,7 +202,11 @@ void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightni
     a=(ox-(camera.x));//задаем вектор направления
     b=(oy-(camera.y));
     c=(oz-(camera.z));
-    tmin=intensity(ox,oy,oz,a,b,c,sphere,light,n,f,&rgbi);
+
+    af=a/(qPow((a*a+b*b+c*c),0.5));//нормированные
+    bf=b/(qPow((a*a+b*b+c*c),0.5));
+    cf=c/(qPow((a*a+b*b+c*c),0.5));
+    tmin=intensity(ox,oy,oz,af,bf,cf,sphere,light,n,f,&rgbi);
     *rgb=rgbi;
     return;
 }
