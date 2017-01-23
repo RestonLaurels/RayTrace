@@ -21,6 +21,8 @@ int roomleangh=2000;//y
 int roomwidth=1400; //x
 int roomheight=900;//z
 int MAXrecurs=10;
+float Ks=0.7;
+float p=200;
 
 using namespace std;
 
@@ -31,10 +33,10 @@ struct color{
 };
 
 struct lightning{
-    int x=100;
-    int y=0;
-    int z=400;
-    float Il=0.6;//интенсивность света
+    int x;
+    int y;
+    int z;
+    float Il;//интенсивность света
 };
 
 struct object{//параметры объекта
@@ -84,7 +86,7 @@ float maxim(float t1, float t2){
   for (int i=0 ; i<=n ; i++){
       if (((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0)){//&&(t!=0)) { //проверяем на пересечение с всеми сферами
           t = intersect (D,sphere[i],ox,oy,oz,a,b,c);//расчитываем t для определения точки пересечения
-          if (t>(-0.1))
+          if (t>(-0.01))
           {//если пересечение найдено не в начальной точке
             return 1;// между источником света и нач. точкой есть объект
           }
@@ -96,10 +98,10 @@ float maxim(float t1, float t2){
 
  // Получаем координаты откуда идет луч, направление луча, массив сфер, источник света, количество сфер, сфера, которую мы исключаем(из нее и идет луч), указатель на цвет
 
- float intensity (float ox, float oy, float oz,float a, float b,float c,object *sphere,lightning light,int n,int f,QRgb *rgb){//функция для определения интенсивности цветов
+ float intensity (float ox, float oy, float oz,float a, float b,float c,object *sphere,lightning *light,int n,int n_light, int f,QRgb *rgb,viewer camera){//функция для определения интенсивности цветов
      int pulse=0,numberspher;
      int i;
-     float Cosa;
+     float Cosa=0,Cosb=0;
      float D,t,tmin;
      float normalx,normaly,normalz;
      float IaR,IaG,IaB;
@@ -107,9 +109,14 @@ float maxim(float t1, float t2){
      float Xinters,Yinters,Zinters;
      float a_to_light,b_to_light,c_to_light,x_to_light,y_to_light,z_to_light;
      float a_light,b_light,c_light;
-
+     float x_to_view,y_to_view,z_to_view;
      float Xotr,Yotr,Zotr;
+     float l_otr_x,l_otr_y,l_otr_z;
+
      float ind;
+     //переменные для света
+     float Shadow= 0;
+     float Bliks = 0;
 
      for (i=0 ; i<n ; i++){
          if ((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0 && (i!=f)){ //если имеется пересечение с сферой и эта сфера не является сферой из которой и идет пересечение то
@@ -140,43 +147,66 @@ float maxim(float t1, float t2){
      normaly=(Yinters - sphere[numberspher].y);//   векторы нормали с направлением
      normalz=(Zinters - sphere[numberspher].z);//
 
+     //задаем новое направление
+     /*
+          Xotr=2*normalx*(normalx*(ox-Xinters)+normaly*(oy-Yinters)+normalz*(oz-Zinters))/(normalx*2+normaly*2+normalz*2)-(ox-Xinters);
+          Yotr=2*normaly*(normalx*(ox-Xinters)+normaly*(oy-Yinters)+normalz*(oz-Zinters))/(normalx*2+normaly*2+normalz*2)-(oy-Yinters);
+          Zotr=2*normalz*(normalx*(ox-Xinters)+normaly*(oy-Yinters)+normalz*(oz-Zinters))/(normalx*2+normaly*2+normalz*2)-(oz-Zinters);
+          a=Xotr-Xinters;
+          b=Yotr-Yinters;
+          c=Zotr-Zinters;
+          ox=Xinters;
+          oy=Yinters;
+          oz=Zinters;
+     */
+
      f=numberspher; //запоминаем сферу с которой было пересечение
+     for (int j=0; j<n_light; j++){
+        //раздел с определением теней (необходимо дополнить несколькими источниками света + добавить массив )
+        a_to_light=(light[j].x-Xinters); b_to_light=(light[j].y-Yinters); c_to_light=(light[j].z-Zinters);
 
-     a_to_light=(light.x-Xinters);
-     b_to_light=(light.y-Yinters);
-     c_to_light=(light.z-Zinters);
+         a_light=(light[j].x - Xinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));     b_light=(light[j].y - Yinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));     c_light=(light[j].z - Zinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
 
-     a_light=(light.x - Xinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
-     b_light=(light.y - Yinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
-     c_light=(light.z - Zinters) / (pow((a_to_light * a_to_light + b_to_light * b_to_light + c_to_light * c_to_light),0.5));
+         x_to_light=Xinters; y_to_light=Yinters;  z_to_light=Zinters;
 
-     x_to_light=Xinters;
-     y_to_light=Yinters;
-     z_to_light=Zinters;
+        //теперь необходимо определить, есть-ли что-то перед нашим источником света
 
-     //теперь необходимо определить, есть-ли что-то перед нашим источником света
+        ind=peres(x_to_light, y_to_light, z_to_light, a_light, b_light, c_light, sphere, n, f);
 
-     ind=peres(x_to_light, y_to_light, z_to_light, a_light, b_light, c_light, sphere, n, f);
+        if (ind==1){//если пересечение было и не в той-же точке откуда выходил => точка в тени
+            Cosa=0;
+            Cosb=0;
+        }
+        else{
+             //косинус между найденной нормалью в точке и прямой к источнику света
+            Cosa=(a_light * normalx + b_light * normaly + c_light * normalz)/(qPow(((a_light * a_light + b_light * b_light + c_light * c_light) * (normalx * normalx + normaly * normaly + normalz * normalz)),0.5));
+            //необходимо расчитать отраженный луч света от поверхности
+            //это и есть коэф отражения
+            l_otr_x=2*normalx*(normalx*(light[j].x-Xinters)+normaly*(light[j].y-Yinters)+normalz*(light[j].z-Zinters))/(normalx*normalx+normaly*normaly+normalz*normalz)-(light[j].x-Xinters);
+            l_otr_y=2*normaly*(normalx*(light[j].x-Xinters)+normaly*(light[j].y-Yinters)+normalz*(light[j].z-Zinters))/(normalx*normalx+normaly*normaly+normalz*normalz)-(light[j].y-Xinters);
+            l_otr_z=2*normalz*(normalx*(light[j].x-Xinters)+normaly*(light[j].y-Yinters)+normalz*(light[j].z-Zinters))/(normalx*normalx+normaly*normaly+normalz*normalz)-(light[j].z-Xinters);
 
-     if (ind==1){//если пересечение было и не в той-же точке откуда выходил => точка в тени
-         Cosa=0;
+            x_to_view=camera.x-Xinters;
+            y_to_view=camera.y-Yinters;
+            z_to_view=camera.z-Zinters;
+            Cosb=(l_otr_x * x_to_view + l_otr_y * y_to_view + l_otr_z * z_to_view)/(qPow(((l_otr_x * l_otr_x + l_otr_y * l_otr_y + l_otr_z * l_otr_z) * (x_to_view * x_to_view + y_to_view * y_to_view + z_to_view * z_to_view)),0.5));
+        }
+        Shadow = Shadow + Cosa * light[j].Il;
+        Bliks = Bliks + (pow(Cosb,p) * light[j].Il);
      }
-     else{
-         //косинус между найденной нормалью в точке и прямой к источнику света
-         Cosa=(a_light * normalx + b_light * normaly + c_light * normalz)/(qPow(((a_light * a_light + b_light * b_light + c_light * c_light) * (normalx * normalx + normaly * normaly + normalz * normalz)),0.5));
+     //конец раздела, посвященного теням //здесь мы поличили косинус для этого источника света
 
-     }
 
      //общая интенсивность по отдельному цвету здесь будет равна
 
-     IaR=(sphere[numberspher].Red) / 255;//таким образом находим фоновую интенсивность объекта
-     IaG=(sphere[numberspher].Green) / 255;//по красному зеленому и голубому для объекта
+     IaR=(sphere[numberspher].Red) / 255;//фоновая интенсивность объекта
+     IaG=(sphere[numberspher].Green) / 255;//
      IaB=(sphere[numberspher].Blue) / 255;
 
-
-     Ir=IaR * sphere[f].Kd + light.Il * sphere[f].Kd * Cosa;
-     Ig=IaG * sphere[f].Kd + light.Il * sphere[f].Kd * Cosa;
-     Ib=IaB * sphere[f].Kd + light.Il * sphere[f].Kd * Cosa;
+     //фон_интенс + тени + блики + отражение
+     Ir=IaR * sphere[f].Kd + sphere[f].Kd * Shadow + Ks * Bliks;
+     Ig=IaG * sphere[f].Kd + sphere[f].Kd * Shadow + Ks * Bliks;
+     Ib=IaB * sphere[f].Kd + sphere[f].Kd * Shadow + Ks * Bliks;
 
      if (Ir>=1) Ir=1;
      if (Ig>=1) Ig=1;
@@ -188,7 +218,7 @@ float maxim(float t1, float t2){
 
 
 
-void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightning light,int n,QRgb *rgb){//n возможно здесь больше истины(+1)
+void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightning *light,int n_sphere,int n_light, QRgb *rgb){//n возможно здесь больше истины(+1)
     /*здесь имеем координаты начальной точки луча, данные по всем сферам, данные по свету, и размер комнат
     */
 
@@ -206,7 +236,7 @@ void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightni
     af=a/(qPow((a*a+b*b+c*c),0.5));//нормированные
     bf=b/(qPow((a*a+b*b+c*c),0.5));
     cf=c/(qPow((a*a+b*b+c*c),0.5));
-    tmin=intensity(ox,oy,oz,af,bf,cf,sphere,light,n,f,&rgbi);
+    tmin=intensity(ox,oy,oz,af,bf,cf,sphere,light,n_sphere,n_light,f,&rgbi,camera);
     *rgb=rgbi;
     return;
 }
@@ -214,40 +244,59 @@ void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightni
 
 int main(int argc, char *argv[])
 {
-    int i=0;
+    int n_light;
+    int n_sphere;
     QApplication a(argc, argv);
     object sphere[10];
     viewer camera;
-    lightning light;
+    lightning light[10];
 
     QImage img(width,height,QImage::Format_RGB32);
     QRgb rgb;
     QFile file("D:/cond.txt");
 
+
     file.open(QIODevice::ReadOnly);
     QTextStream stream(&file);
 
-    while (!stream.atEnd()) { //радиус координаты, цвет сферы
+    QByteArray qw = file.readLine(); // читаем первую строку
+    n_light = atoi(qw);
+
+    for (int j=0;j<n_light;j++){ //координаты, интенсивность света
         QByteArray ba = file.readLine(); // читаем первую строку
         QList<QByteArray> baList = ba.split(' '); // делим строку на кусочки... в качестве разделителя используем пробел
 
-        sphere[i].R=atoi(baList[0]);
-        sphere[i].x=atoi(baList[1]);
-        sphere[i].y=atoi(baList[2]);
-        sphere[i].z=atoi(baList[3]);
-        sphere[i].Red=atoi(baList[4]);
-        sphere[i].Green=atoi(baList[5]);
-        sphere[i].Blue=atoi(baList[6]);
-        sphere[i].Kd=(atoi(baList[7]));
+        light[j].x=atoi(baList[0]);
+        light[j].y=atoi(baList[1]);
+        light[j].z=atoi(baList[2]);
+        light[j].Il=atoi(baList[3]);
+        light[j].Il=(light[j].Il)/10;
+        //j++;
+    }
+
+    QByteArray ty = file.readLine();
+    n_sphere = atoi(ty);
+
+    for (int i=0; i<n_sphere; i++){ //радиус координаты, цвет сферы
+        QByteArray ce = file.readLine(); // читаем первую строку
+        QList<QByteArray> ceList = ce.split(' '); // делим строку на кусочки... в качестве разделителя используем пробел
+
+        sphere[i].R=atoi(ceList[0]);
+        sphere[i].x=atoi(ceList[1]);
+        sphere[i].y=atoi(ceList[2]);
+        sphere[i].z=atoi(ceList[3]);
+        sphere[i].Red=atoi(ceList[4]);
+        sphere[i].Green=atoi(ceList[5]);
+        sphere[i].Blue=atoi(ceList[6]);
+        sphere[i].Kd=(atoi(ceList[7]));
         sphere[i].Kd=(sphere[i].Kd)/10;
-        i++;
     }
     file.close(); // закрываем файл
 
     for (int z=0; z<=height; z++) {
       for (int x=0; x<=width; x++) {
         rgb = qRgb(0,0,0);
-        Power_pix(x,0,z,sphere,camera,light,i,&rgb);
+        Power_pix(x,0,z,sphere,camera,light,n_sphere,n_light,&rgb);
         img.setPixel(x,z,rgb);
         rgb = qRgb(0,0,0);
       }
