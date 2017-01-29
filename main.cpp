@@ -15,22 +15,13 @@
 #include <cstring>
 
 
-int width = 1400;
-int height = 900;
-int roomleangh=2000;//y
-int roomwidth=1400; //x
-int roomheight=900;//z
+int width = 1900;
+int height = 1100;
 int MAXrecurs=6;
 float Ks=0.7;
 float p=200;
 
 using namespace std;
-
-struct color{
-    int R;
-    int G;
-    int B;
-};
 
 struct lightning{
     int x;
@@ -45,23 +36,19 @@ struct object{//параметры объекта
     int z;  //
     int R;  //радиус шара
     //struct color color;
-    float Red; //фоновая интенсивность для красного
-    float Green;//фоновая интенсивность для зеленого
-    float Blue;//фоновая интенсивность для голубого
+    float Red;
+    float Green;
+    float Blue;
     float Kd;
 };
 struct viewer{//параметры наблюдателя
     // напротив какого пикселя находится наблюдатель
-    int x=700;
-    int z=450;
+    int x=950;
+    int z=550;
     int y=-1400;//расстояние до изображения
 };
 float minim(float t1, float t2){
     if(t1>t2) t1 = t2;
-    return t1;
-}
-float maxim(float t1, float t2){
-    if(t2>t1) t1 = t2;
     return t1;
 }
 
@@ -84,7 +71,7 @@ float maxim(float t1, float t2){
  float peres(float ox,float oy, float oz,float a,float b, float c, object *sphere,int n,int f){
   float D,t;
   for (int i=0 ; i<=n ; i++){
-      if (((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0)){//&&(t!=0)) { //проверяем на пересечение с всеми сферами
+      if (((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0)){ //проверяем на пересечение с всеми сферами
           t = intersect (D,sphere[i],ox,oy,oz,a,b,c);//расчитываем t для определения точки пересечения
           if (t>(-0.01))
           {//если пересечение найдено не в начальной точке
@@ -98,9 +85,9 @@ float maxim(float t1, float t2){
 
  // Получаем координаты откуда идет луч, направление луча, массив сфер, источник света, количество сфер, сфера, которую мы исключаем(из нее и идет луч), указатель на цвет
 
- int intensity (float ox, float oy, float oz,float a, float b,float c,object *sphere,lightning *light,int n_sphere,int n_light, int f,float *IotrR,float *IotrG, float *IotrB,viewer camera, int nrecurs){//функция для определения интенсивности цветов
+ void intensity (float ox, float oy, float oz,float a, float b,float c,object *sphere,lightning *light,int n_sphere,int n_light, int f,float *IotrR,float *IotrG, float *IotrB,viewer camera, int nrecurs){//функция для определения интенсивности цветов
+
      int pulse=0,numberspher;
-     int l;
      int i;
      float Cosa=0,Cosb=0;
      float D,t,tmin;
@@ -124,7 +111,7 @@ float maxim(float t1, float t2){
      float Shadow= 0;
      float Bliks = 0;
 
-     if (nrecurs > MAXrecurs) return 0;//мы слишком далеко зашли (IotrRi и другие остаются =0)
+     if (nrecurs > MAXrecurs) return;//мы слишком далеко зашли (IotrRi и другие остаются =0)
 
      for (i=0 ; i<n_sphere ; i++){
          if ((D=descr(sphere[i],ox,oy,oz,a,b,c))>=0 && (i!=f)){ //если имеется пересечение с сферой и эта сфера не является сферой из которой и идет пересечение то
@@ -146,12 +133,11 @@ float maxim(float t1, float t2){
          }
      }
 
-     if (pulse==0) return 0;//если пересечения ни с 1ой сферой не было (луч ушел в пустоту) возвращаемся (IotrRi и другие остаются =0)
+     if (pulse==0) return;//если пересечения ни с 1ой сферой не было (луч ушел в пустоту) возвращаемся (IotrRi и другие остаются =0)
 
      Xinters= ox + a * tmin; //
      Yinters= oy + b * tmin; //  точка пересечения с объектом
      Zinters= oz + c * tmin; //
-
 
      normalx=(Xinters - sphere[numberspher].x);//
      normaly=(Yinters - sphere[numberspher].y);//   векторы нормали с направлением
@@ -167,7 +153,7 @@ float maxim(float t1, float t2){
      b=Yotr;
      c=Zotr;
 
-     af=a/(qPow((a*a+b*b+c*c),0.5));//нормированные
+     af=a/(qPow((a*a+b*b+c*c),0.5));//нормировка
      bf=b/(qPow((a*a+b*b+c*c),0.5));
      cf=c/(qPow((a*a+b*b+c*c),0.5));
 
@@ -177,7 +163,7 @@ float maxim(float t1, float t2){
 
      f=numberspher; //запоминаем сферу с которой было пересечение
 
-     tmin=intensity(ox,oy,oz,af,bf,cf,sphere,light,n_sphere,n_light,f,&IotrRi,&IotrGi,&IotrBi,camera,nrecurs+1);
+     intensity(ox,oy,oz,af,bf,cf,sphere,light,n_sphere,n_light,f,&IotrRi,&IotrGi,&IotrBi,camera,nrecurs+1);
 
      for (int j=0; j<n_light; j++){
         //раздел с определением теней и бликов
@@ -222,6 +208,7 @@ float maxim(float t1, float t2){
      IaB=(sphere[numberspher].Blue) / 255;
 
      //фон_интенс + тени + блики + отражение
+
      Ir=IaR * sphere[f].Kd + sphere[f].Kd * Shadow + Ks * Bliks + (1-sphere[f].Kd) * IotrRi;
      Ig=IaG * sphere[f].Kd + sphere[f].Kd * Shadow + Ks * Bliks + (1-sphere[f].Kd) * IotrGi;
      Ib=IaB * sphere[f].Kd + sphere[f].Kd * Shadow + Ks * Bliks + (1-sphere[f].Kd) * IotrBi;
@@ -233,7 +220,7 @@ float maxim(float t1, float t2){
      *IotrG=Ig;
      *IotrB=Ib;
 
-     return 1;
+     return;
 }
 
 
@@ -241,12 +228,9 @@ float maxim(float t1, float t2){
 void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightning *light,int n_sphere,int n_light, QRgb *rgb){//n возможно здесь больше истины(+1)
     /*здесь имеем координаты начальной точки луча, данные по всем сферам, данные по свету, и размер комнат
     */
-
-    float tmin;
     float a,b,c;
     float af,bf,cf;
     int f=-1;
-    int l;
     int nrecurs=1;
     float IotrR=0,IotrG=0,IotrB=0;
 
@@ -258,7 +242,7 @@ void Power_pix (float ox,float oy,float oz,object *sphere, viewer camera,lightni
     bf=b/(qPow((a*a+b*b+c*c),0.5));
     cf=c/(qPow((a*a+b*b+c*c),0.5));
     // координаты откуда пускается луч его напр, количество источников света, сфер, сфера,из которой идет луч, ссылка на интенсивность красного,зеленого,голубого, данные наблюдателя и номер нынешней рекурсии
-    l=intensity(ox,oy,oz,af,bf,cf,sphere,light,n_sphere,n_light,f,&IotrR,&IotrG,&IotrB,camera,nrecurs);
+    intensity(ox,oy,oz,af,bf,cf,sphere,light,n_sphere,n_light,f,&IotrR,&IotrG,&IotrB,camera,nrecurs);
 
     *rgb=qRgb(int(IotrR*255),int(IotrG*255),int(IotrB*255));
 
@@ -270,7 +254,7 @@ int main(int argc, char *argv[]){
     int n_light;
     int n_sphere;
     QApplication a(argc, argv);
-    object sphere[10];
+    object sphere[100];
     viewer camera;
     lightning light[10];
 
